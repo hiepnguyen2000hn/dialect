@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.dialect.to)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run lint)",
+      "Bash(find:*)",
+      "WebSearch",
+      "WebFetch(domain:solana.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(ngrok:*)",
+      "Bash(./ngrok.exe version)",
+      "Bash(./ngrok.exe authtoken:*)",
+      "Bash(./ngrok.exe config check)",
+      "Bash(pnpm start:*)",
+      "Bash(pnpm build:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  }
+}
