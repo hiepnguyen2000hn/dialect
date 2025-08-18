@@ -18,22 +18,21 @@ import {
 
 // GET endpoint returns the Blink metadata (JSON) and UI configuration
 export const GET = async (req: Request) => {
+    const baseUrl = new URL(req.url).origin;
+
     // This JSON is used to render the Blink UI
     const response: ActionGetResponse = {
         type: "action",
-        icon: `${new URL("/donate-sol.jpg", req.url).toString()}`,
+        icon: `${baseUrl}/donate-sol.jpg`,
         label: "Transfer SOL",
         title: "Transfer SOL",
-        description:
-            "This Blink demonstrates how to transfer SOL on the Solana blockchain. It is a part of the official Blink Starter Guides by Dialect Labs.",
-        // Links is used if you have multiple actions or if you need more than one params
+        description: "This Blink demonstrates how to transfer SOL on the Solana blockchain. It is a part of the official Blink Starter Guides by Dialect Labs.",
         links: {
             actions: [
                 {
-                    // Defines this as a blockchain transaction
                     type: "transaction",
                     label: "0.01 SOL",
-                    // This is the endpoint for the POST request
+                    // href phải là relative path, không có baseUrl
                     href: `/api/actions/transfer-sol?amount=0.01`,
                 },
                 {
@@ -47,7 +46,6 @@ export const GET = async (req: Request) => {
                     href: `/api/actions/transfer-sol?amount=0.1`,
                 },
                 {
-                    // Example for a custom input field
                     type: "transaction",
                     href: `/api/actions/transfer-sol?amount={amount}&to={to}`,
                     label: "Transfer",
@@ -56,11 +54,13 @@ export const GET = async (req: Request) => {
                             name: "amount",
                             label: "Enter SOL amount",
                             type: "number",
+                            required: true,
                         },
                         {
                             name: "to",
                             label: "Enter recipient address",
                             type: "text",
+                            required: true,
                         },
                     ],
                 },
@@ -68,7 +68,6 @@ export const GET = async (req: Request) => {
         },
     };
 
-    // Return the response with proper headers
     return new Response(JSON.stringify(response), {
         status: 200,
         headers: ACTIONS_CORS_HEADERS,
@@ -93,18 +92,27 @@ export const POST = async (req: Request) => {
         }
 
         // Get amount and recipient from URL params
-        const amount = parseFloat(url.searchParams.get("amount") || "0");
+        const amountString = url.searchParams.get("amount");
         const toAddress = url.searchParams.get("to");
 
-        if (!amount || amount <= 0) {
-            return new Response('Invalid "amount" provided', {
+        if (!amountString) {
+            return new Response('Missing "amount" parameter', {
                 status: 400,
                 headers: ACTIONS_CORS_HEADERS,
             });
         }
 
-        if (!toAddress) {
-            return new Response('Missing "to" address', {
+        const amount = parseFloat(amountString);
+
+        if (isNaN(amount) || amount <= 0 || amount > 100) {
+            return new Response('Invalid "amount" - must be a positive number <= 100 SOL', {
+                status: 400,
+                headers: ACTIONS_CORS_HEADERS,
+            });
+        }
+
+        if (!toAddress || toAddress.trim().length === 0) {
+            return new Response('Missing or empty "to" address', {
                 status: 400,
                 headers: ACTIONS_CORS_HEADERS,
             });
@@ -124,7 +132,7 @@ export const POST = async (req: Request) => {
         const connection = new Connection(clusterApiUrl("devnet"));
 
         // Get the latest blockhash
-        const { blockhash } = await connection.getLatestBlockhash();
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
         // Create the transfer instruction
         const transferInstruction = SystemProgram.transfer({
@@ -137,7 +145,7 @@ export const POST = async (req: Request) => {
         const transaction = new Transaction({
             feePayer: account,
             blockhash,
-            lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight,
+            lastValidBlockHeight,
         }).add(transferInstruction);
 
         // Create the response
